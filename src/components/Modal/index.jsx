@@ -9,11 +9,9 @@ const Modal = ({ handleLoader, handleCloseModal, imageUrl, alt }) => {
       event.key === 'Escape' && handleCloseModal();
 
     window.addEventListener('keydown', handleKeyEvent);
-    console.log('-0- mounted -0-');
 
     return () => {
       window.removeEventListener('keydown', handleKeyEvent);
-      console.log('-0- cleanup -0-');
     };
   }, [handleCloseModal]);
 
