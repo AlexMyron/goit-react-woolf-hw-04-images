@@ -1,4 +1,4 @@
-import { Component, createRef } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 
 import { fetchImages, PER_PAGE } from '../services/api';
 
@@ -8,95 +8,93 @@ import Button from './Button';
 import Loader from './Loader';
 import Modal from './Modal';
 
-export class App extends Component {
-  state = {
-    query: '',
-    page: 1,
-    totalHits: null,
-    images: [],
-    isLoading: false,
-    largeImageUrl: null,
-  };
+export const App = () => {
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalHits, setTotalHits] = useState(null);
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsloading] = useState(false);
+  const [largeImageUrl, setLargeImageUrl] = useState(null);
+  const galleryRef = useRef();
 
-  galleryRef = createRef();
+  const isLastPage = Math.ceil(totalHits / PER_PAGE) === page;
+  const isShowButton = !!images.length && !isLastPage;
 
-  componentDidUpdate = async (_, prevState) => {
-    const { query, page } = this.state;
-    if (!query) return;
-
-    if (query !== prevState.query || page !== prevState.page) {
-      try {
-        this.setState({ isLoading: true });
-        const imagesData = await fetchImages(query, page);
-
-        this.setState(prev => {
-          const updatedImages =
-            page === 1 ? imagesData.hits : [...prev.images, ...imagesData.hits];
-
-          return {
-            ...prev,
-            totalHits: imagesData.totalHits,
-            images: updatedImages,
-          };
-        });
-
-        page > 1 && this.scrollDown();
-      } catch (err) {
-        console.error(err.message);
-      } finally {
-        setTimeout(() => this.setState({ isLoading: false }), 300);
-      }
-    }
-  };
-
-  handleSearch = e => {
+  const handleSearch = e => {
     e.preventDefault();
-    this.setState({ query: e.target.elements.search.value, page: 1 });
+    setQuery(e.target.elements.search.value);
+    setPage(1);
   };
 
-  handleLoadMore = () => this.setState(({ page }) => ({ page: (page += 1) }));
+  const handleLoadMore = () => setPage(page => page + 1);
 
-  handleImageClick = url => this.setState({ largeImageUrl: url, isLoading: true });
+  const handleImageClick = url => {
+    setLargeImageUrl(url);
+    setIsloading(true);
+  };
 
-  handleCloseModal = () => this.setState({ largeImageUrl: null });
+  const handleCloseModal = useCallback(() => setLargeImageUrl(null), []);
 
-  handleLoader = () => this.setState({isLoading: false});
+  const handleLoader = useCallback(isLoading => {
+    setIsloading(isLoading);
+  }, []);
 
-  scrollDown = () => {
+  const scrollDown = useCallback(() => {
     setTimeout(() => {
-      const { clientHeight } = this.galleryRef.current.firstElementChild;
+      if (!galleryRef.current) return;
+      const { clientHeight } = galleryRef.current.firstElementChild;
 
       window.scrollBy({
         top: clientHeight * 2,
         behavior: 'smooth',
       });
     }, 0);
-  };
+  }, [galleryRef]);
 
-  render() {
-    const { query, images, totalHits, page, isLoading, largeImageUrl } = this.state;
-    const isLastPage = Math.ceil(totalHits / PER_PAGE) === page;
-    const isShowButton = !!images.length && !isLastPage;
+  useEffect(() => {
+    if (!query) return;
 
-    return (
-      <section className="app">
-        <SearchBar onSubmit={this.handleSearch} />
-        {!!totalHits && <ImageGallery
+    const fetchData = async () => {
+      try {
+        setIsloading(true);
+        const imagesData = await fetchImages(query, page);
+
+        setTotalHits(imagesData.totalHits);
+        setImages(prevImages =>
+          page === 1 ? imagesData.hits : [...prevImages, ...imagesData.hits]
+        );
+
+        page > 1 && scrollDown();
+      } catch (err) {
+        console.error(err.message);
+      } finally {
+        setIsloading(false);
+      }
+    };
+
+    fetchData();
+  }, [query, page, scrollDown]);
+
+  return (
+    <section className="app">
+      <SearchBar onSubmit={handleSearch} />
+      {!!totalHits && (
+        <ImageGallery
           images={images}
-          ref={this.galleryRef}
-          handleImageClick={this.handleImageClick}
-        />}
-        {isShowButton && <Button onClick={this.handleLoadMore} />}
-        {isLoading && <Loader />}
-        {largeImageUrl && (
-          <Modal
-            imageUrl={largeImageUrl}
-            alt={query}
-            handleCloseModal={this.handleCloseModal}
-            handleLoader={this.handleLoader}
-          />
-        )}
-      </section>
-    );
-  }
-}
+          ref={galleryRef}
+          handleImageClick={handleImageClick}
+        />
+      )}
+      {isShowButton && <Button onClick={handleLoadMore} />}
+      {isLoading && <Loader />}
+      {largeImageUrl && (
+        <Modal
+          imageUrl={largeImageUrl}
+          alt={query}
+          handleCloseModal={handleCloseModal}
+          handleLoader={handleLoader}
+        />
+      )}
+    </section>
+  );
+};

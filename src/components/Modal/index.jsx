@@ -1,49 +1,42 @@
-import { Component, createRef } from 'react';
+import { useRef, useEffect } from 'react';
 import css from './Modal.module.css';
 
-export default class Modal extends Component {
-  state = {
-    isLoading: true,
-  };
-  overlayRef = createRef();
+const Modal = ({ handleLoader, handleCloseModal, imageUrl, alt }) => {
+  const overlayRef = useRef();
 
-  componentDidMount = () =>
-    window.addEventListener('keydown', this.handleKeyEvent);
+  useEffect(() => {
+    const handleKeyEvent = event =>
+      event.key === 'Escape' && handleCloseModal();
 
-  componentDidUpdate = (_, prevState) => {
-    if (prevState.isLoading) this.props.handleLoader();
-  };
+    window.addEventListener('keydown', handleKeyEvent);
+    console.log('-0- mounted -0-');
 
-  componentWillUnmount = () =>
-    window.removeEventListener('keydown', this.handleKeyEvent);
+    return () => {
+      window.removeEventListener('keydown', handleKeyEvent);
+      console.log('-0- cleanup -0-');
+    };
+  }, [handleCloseModal]);
 
-  handleKeyEvent = ({ key }) =>
-    key === 'Escape' && this.props.handleCloseModal();
-
-  handleClose = ({ target }) =>
-    target === this.overlayRef.current && this.props.handleCloseModal();
-
-  handleImageLoaded = () => {
-    this.setState({ isLoading: false });
+  const handleClose = ({ target }) => {
+    if (target === overlayRef.current) {
+      handleCloseModal();
+    }
   };
 
-  render() {
-    const { imageUrl, alt } = this.props;
-    return (
-      <div
-        className={css.overlay}
-        onClick={this.handleClose}
-        ref={this.overlayRef}
-      >
-        <div className={css.modal}>
-          <img
-            src={imageUrl}
-            alt={alt}
-            onLoad={this.handleImageLoaded}
-            onError={this.handleImageLoaded}
-          />
-        </div>
+  const handleImageLoaded = () => handleLoader(false);
+
+  return (
+    <div className={css.overlay} onClick={handleClose} ref={overlayRef}>
+      <div className={css.modal}>
+        <img
+          src={imageUrl}
+          alt={alt}
+          onLoad={handleImageLoaded}
+          onError={handleImageLoaded}
+        />
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
+
+export default Modal;
