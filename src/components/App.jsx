@@ -1,6 +1,7 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 
 import { fetchImages, PER_PAGE } from '../services/api';
+import { scrollSmoothlyTo } from 'services/helpers';
 
 import ImageGallery from './ImageGallery';
 import SearchBar from './Searchbar';
@@ -13,7 +14,7 @@ export const App = () => {
   const [page, setPage] = useState(1);
   const [totalHits, setTotalHits] = useState(null);
   const [images, setImages] = useState([]);
-  const [isLoading, setIsloading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [largeImageUrl, setLargeImageUrl] = useState(null);
   const galleryRef = useRef();
 
@@ -30,33 +31,21 @@ export const App = () => {
 
   const handleImageClick = url => {
     setLargeImageUrl(url);
-    setIsloading(true);
+    setIsLoading(true);
   };
 
   const handleCloseModal = useCallback(() => setLargeImageUrl(null), []);
 
   const handleLoader = useCallback(isLoading => {
-    setIsloading(isLoading);
+    setIsLoading(isLoading);
   }, []);
-
-  const scrollDown = useCallback(() => {
-    setTimeout(() => {
-      if (!galleryRef.current) return;
-      const { clientHeight } = galleryRef.current.firstElementChild;
-
-      window.scrollBy({
-        top: clientHeight * 2,
-        behavior: 'smooth',
-      });
-    }, 0);
-  }, [galleryRef]);
 
   useEffect(() => {
     if (!query) return;
 
     const fetchData = async () => {
       try {
-        setIsloading(true);
+        setIsLoading(true);
         const imagesData = await fetchImages(query, page);
 
         setTotalHits(imagesData.totalHits);
@@ -64,16 +53,16 @@ export const App = () => {
           page === 1 ? imagesData.hits : [...prevImages, ...imagesData.hits]
         );
 
-        page > 1 && scrollDown();
+        scrollSmoothlyTo({ isToTop: page === 1, ref: galleryRef });
       } catch (err) {
         console.error(err.message);
       } finally {
-        setIsloading(false);
+        setIsLoading(false);
       }
     };
 
     fetchData();
-  }, [query, page, scrollDown]);
+  }, [query, page]);
 
   return (
     <section className="app">
