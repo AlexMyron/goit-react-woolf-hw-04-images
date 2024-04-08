@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 import { fetchImages, PER_PAGE } from '../services/api';
 import { scrollSmoothlyTo } from 'services/helpers';
@@ -34,11 +34,12 @@ export const App = () => {
     setIsLoading(true);
   };
 
-  const handleCloseModal = useCallback(() => setLargeImageUrl(null), []);
+  const handleCloseModal = () => {
+    setLargeImageUrl(null);
+    setIsLoading(false);
+  };
 
-  const handleLoader = useCallback(isLoading => {
-    setIsLoading(isLoading);
-  }, []);
+  const handleLoader = isLoading => setIsLoading(isLoading);
 
   useEffect(() => {
     if (!query) return;
